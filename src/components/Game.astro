@@ -17,6 +17,20 @@
 		<div id="timer">0m 0s</div>
 		<button id="logout-btn">Cerrar sesión</button>
 		<div id="game-board"></div>
+
+		<h3>Ranking</h3>
+		<table id="ranking-table">
+			<thead>
+				<tr>
+					<th>Posició</th>
+					<th>Username</th>
+					<th>Mail</th>
+					<th>Temps</th>
+					<th>Número de cartes</th>
+				</tr>
+			</thead>
+			<tbody id="ranking-body"></tbody>
+		</table>
 	</div>
 
 	<dialog id="modal">
@@ -33,16 +47,19 @@
 		const playBtn = document.getElementById('play-btn');
 		const timerEl = document.getElementById('timer');
 		const gameBoard = document.getElementById('game-board');
+		const rankingBody = document.getElementById('ranking-body');
 		const modal = document.getElementById('modal');
 		const modalMessage = document.getElementById('modal-message');
 		const modalClose = document.getElementById('modal-close');
 
 		let timerInterval = null;
 		let seconds = 0;
+		let currentNumCards = 0;
 		let firstCard = null;
 		let secondCard = null;
 		let lockBoard = false;
 		let matchedCount = 0;
+		let lastRankingKey = null;
 
 		const userId = sessionStorage.getItem('user');
 		if (!userId) {
@@ -50,6 +67,122 @@
 			return;
 		}
 		game.hidden = false;
+
+		const DB_URL = import.meta.env.PUBLIC_DB_URL;
+
+		async function loadRanking() {
+			if (!DB_URL) return;
+
+			// Leer usuarios para obtener username y email por id
+			const usersRes = await fetch(`${DB_URL}.json`);
+			const usersData = await usersRes.json();
+			const usersMap = {};
+			if (usersData && typeof usersData === 'object') {
+				for (const [key, value] of Object.entries(usersData)) {
+					usersMap[key] = value || {};
+				}
+			}
+
+			// Leer ranking de la tabla separada en Firebase
+			const baseUrl = DB_URL.replace(/\/users$/, '');
+			const rankingRes = await fetch(`${baseUrl}/ranking.json`);
+			const rankingData = await rankingRes.json();
+			const rankingList = [];
+			if (rankingData && typeof rankingData === 'object') {
+				for (const [key, value] of Object.entries(rankingData)) {
+					rankingList.push({ key, ...value });
+				}
+			}
+
+			// Ordenar: cartes descendente, temps ascendente
+			rankingList.sort((a, b) => {
+				if (b.numCartes !== a.numCartes) return b.numCartes - a.numCartes;
+				return a.temps - b.temps;
+			});
+
+			// Renderizar
+			rankingBody.innerHTML = '';
+			const total = rankingList.length;
+
+			if (total <= 5) {
+				rankingList.forEach((record, index) => {
+					const user = usersMap[record.userId] || {};
+					const tr = document.createElement('tr');
+					if (record.key === lastRankingKey) tr.classList.add('highlight');
+					tr.innerHTML = `
+						<td>${index + 1}</td>
+						<td>${user.username || 'Desconocido'}</td>
+						<td>${user.email || 'Desconocido'}</td>
+						<td>${formatTime(record.temps)}</td>
+						<td>${record.numCartes || 0}</td>
+					`;
+					rankingBody.appendChild(tr);
+				});
+			} else {
+				// 4 primeros
+				for (let i = 0; i < 4; i++) {
+					const record = rankingList[i];
+					const user = usersMap[record.userId] || {};
+					const tr = document.createElement('tr');
+					if (record.key === lastRankingKey) tr.classList.add('highlight');
+					tr.innerHTML = `
+						<td>${i + 1}</td>
+						<td>${user.username || 'Desconocido'}</td>
+						<td>${user.email || 'Desconocido'}</td>
+						<td>${formatTime(record.temps)}</td>
+						<td>${record.numCartes || 0}</td>
+					`;
+					rankingBody.appendChild(tr);
+				}
+
+				// Puntos suspensivos
+				const ellipsis1 = document.createElement('tr');
+				ellipsis1.innerHTML = '<td colspan="5">...</td>';
+				rankingBody.appendChild(ellipsis1);
+
+				// Si el registro nuevo está en la posición 5, mostrarlo resaltado
+				if (lastRankingKey) {
+					const newIndex = rankingList.findIndex(r => r.key === lastRankingKey);
+					if (newIndex === 4) {
+						const record = rankingList[4];
+						const user = usersMap[record.userId] || {};
+						const tr = document.createElement('tr');
+						tr.classList.add('highlight');
+						tr.innerHTML = `
+							<td>5</td>
+							<td>${user.username || 'Desconocido'}</td>
+							<td>${user.email || 'Desconocido'}</td>
+							<td>${formatTime(record.temps)}</td>
+							<td>${record.numCartes || 0}</td>
+						`;
+						rankingBody.appendChild(tr);
+					}
+				}
+
+				// Puntos suspensivos finales
+				const ellipsis2 = document.createElement('tr');
+				ellipsis2.innerHTML = '<td colspan="5">...</td>';
+				rankingBody.appendChild(ellipsis2);
+			}
+		}
+
+		async function saveRanking(temps, numCartes) {
+			if (!DB_URL || !userId) return;
+
+			const tempsVal = Number.isFinite(temps) ? temps : 0;
+			const numCartesVal = Number.isFinite(numCartes) ? numCartes : 0;
+
+			const baseUrl = DB_URL.replace(/\/users$/, '');
+			const res = await fetch(`${baseUrl}/ranking.json`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ userId, temps: tempsVal, numCartes: numCartesVal }),
+			});
+			if (!res.ok) throw new Error('Error guardando ranking');
+			const result = await res.json();
+			lastRankingKey = result.name;
+			await loadRanking();
+		}
 
 		async function fetchPokemonImages(count) {
 			const ids = [];
@@ -74,9 +207,10 @@
 		}
 
 		function formatTime(secs) {
-			const m = Math.floor(secs / 60);
-			const s = secs % 60;
-			return `${m}m ${s}s`;
+			const s = Number.isFinite(secs) ? secs : 0;
+			const m = Math.floor(s / 60);
+			const seg = s % 60;
+			return `${m}m ${seg}s`;
 		}
 
 		function startTimer() {
@@ -96,6 +230,8 @@
 		function createBoard(numCards) {
 			gameBoard.innerHTML = '';
 			matchedCount = 0;
+			lastRankingKey = null;
+			currentNumCards = numCards;
 
 			const pairsNeeded = numCards / 2;
 			fetchPokemonImages(pairsNeeded).then(pokemon => {
@@ -135,9 +271,10 @@
 				matchedCount += 2;
 				resetTurn();
 
-				const totalCards = gameBoard.querySelectorAll('.card').length;
+				const totalCards = currentNumCards;
 				if (matchedCount === totalCards) {
 					stopTimer();
+					saveRanking(seconds, totalCards);
 				}
 			} else {
 				setTimeout(() => {
@@ -188,6 +325,9 @@
 				location.reload();
 			});
 		}
+
+		// Cargar ranking al iniciar si hay sesión
+		loadRanking();
 	}
 
 	init();
@@ -253,11 +393,31 @@
 		border-color: #2e7d32;
 	}
 
+	.highlight {
+		background-color: #ffeb3b !important;
+	}
+
 	dialog {
 		border: none;
 		border-radius: 8px;
 		padding: 1rem;
 		max-width: 300px;
 	}
-</style>
 
+	#ranking-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.9rem;
+	}
+
+	#ranking-table th,
+	#ranking-table td {
+		border: 1px solid #333;
+		padding: 0.4rem;
+		text-align: center;
+	}
+
+	#ranking-table th {
+		background-color: #eee;
+	}
+</style>
