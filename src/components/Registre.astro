@@ -1,39 +1,112 @@
-<form id="userForm">
+<form id="user-form">
   <input type="email" id="email" required placeholder="Email" />
   <input type="text" id="username" required placeholder="Username" />
   <button type="submit">Enviar</button>
 </form>
 
+<p id="welcome" hidden></p>
+<p id="msg"></p>
+
+<button id="clearBtn">Clear</button>
+
 <script>
-  const form = document.getElementById("userForm") as HTMLFormElement;
-  const DB_URL = "https://practicajs-rogermane-6a38d-default-rtdb.europe-west1.firebasedatabase.app/users";
 
-  form?.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  const DB_URL = import.meta.env.PUBLIC_DB_URL;
+  const form = document.getElementById("user-form");
+  const welcome = document.getElementById("welcome");
+  const msg = document.getElementById("msg");
+  const clearBtn = document.getElementById("clearBtn");
 
-    const emailInput = (document.getElementById("email") as HTMLInputElement).value;
-    const usernameInput = (document.getElementById("username") as HTMLInputElement).value;
+  function mostrar(texto, tipo) {
+    if (!msg) return;
+    msg.textContent = texto;
+    msg.hidden = false;
+    msg.setAttribute("data-tipo", tipo);
+  }
 
-    try {
-      const usuarioNuevo = {
-        email: emailInput,
-        username: usernameInput
-      }
-
-      const createResponse = await fetch(`${DB_URL}.json`, {
-        method: "POST",
-        body: JSON.stringify(
-          usuarioNuevo
-        ),
-      });
-
-      if(!createResponse) console.error("No se ha podido crear")
-      if(createResponse) console.info("Se ha creado correctamente")
-      
-    } catch (error) {
-      console.error("Error de conexión con la base de datos:", error);
+  function actualizarUI(userId) {
+    if (userId && form && welcome) {
+      form.hidden = true;
+      welcome.hidden = false;
+      welcome.textContent = "Usuario conectado correctamente";
+      if (msg) msg.hidden = true;
+    } else if (form && welcome) {
+      form.hidden = false;
+      welcome.hidden = true;
     }
+  }
 
-    form?.reset();
-  });
+  // Inicial
+  actualizarUI(sessionStorage.getItem("user"));
+
+  if (form) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const emailEl = document.getElementById("email");
+      const usernameEl = document.getElementById("username");
+
+      if (!emailEl || !usernameEl) return;
+
+      const emailInput = emailEl.value;
+      const usernameInput = usernameEl.value;
+
+      try {
+        const response = await fetch(`${DB_URL}.json`);
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+        const data = await response.json();
+
+        let existingKey = null;
+        if (data) {
+          for (const [key, value] of Object.entries(data)) {
+            if (value.email === emailInput) {
+              existingKey = key;
+              break;
+            }
+          }
+        }
+
+        const usuarioDatos = { email: emailInput, username: usernameInput };
+        let res;
+        let idGuardado;
+
+        if (existingKey) {
+          res = await fetch(`${DB_URL}/${existingKey}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(usuarioDatos),
+          });
+          idGuardado = existingKey;
+        } else {
+          res = await fetch(`${DB_URL}.json`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(usuarioDatos),
+          });
+          if (!res.ok) throw new Error(`Error guardando usuario (${res.status})`);
+          const result = await res.json();
+          idGuardado = result.name;
+        }
+
+        if (!res.ok) throw new Error(`Error guardando usuario (${res.status})`);
+
+        sessionStorage.setItem("user", idGuardado);
+        form.reset();
+        actualizarUI(idGuardado);
+
+      } catch (error) {
+        console.error("Error:", error);
+        mostrar(`Error: ${error.message}`, "error");
+      }
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      sessionStorage.removeItem("user");
+      actualizarUI(null);
+      if (msg) msg.setAttribute("hidden", "true");
+    });
+  }
+
 </script>
