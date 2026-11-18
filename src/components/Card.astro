@@ -1,0 +1,32 @@
+---
+interface Props {
+  id: string;
+  imageUrl: string;
+}
+
+const { id, imageUrl } = Astro.props;
+---
+
+<div class="card" data-id={id} data-image={imageUrl}></div>
+
+<style>
+	.card {
+		width: 100px;
+		height: 100px;
+		background-size: cover;
+		background-position: center;
+		border: 2px solid #333;
+		cursor: pointer;
+		background-color: #ddd;
+		background-image: none;
+	}
+
+	.card.flipped {
+		border-color: #000;
+	}
+
+	.card.matched {
+		background-color: #4caf50;
+		border-color: #2e7d32;
+	}
+</style>

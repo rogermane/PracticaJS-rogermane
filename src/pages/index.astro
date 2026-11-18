@@ -1,7 +1,32 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Registre from '../components/Registre.astro';
+import Game from '../components/Game.astro';
 ---
 
 <Layout>
-	
+	<div id="registre-view">
+		<Registre />
+	</div>
+	<div id="game-view">
+		<Game />
+	</div>
+
+	<script>
+		const registre = document.getElementById('registre-view');
+		const game = document.getElementById('game-view');
+
+		function actualizarVista() {
+			const user = sessionStorage.getItem('user');
+			if (user) {
+				registre.hidden = true;
+				game.hidden = false;
+			} else {
+				registre.hidden = false;
+				game.hidden = true;
+			}
+		}
+
+		actualizarVista();
+	</script>
 </Layout>

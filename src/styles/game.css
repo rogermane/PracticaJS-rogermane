@@ -1,0 +1,232 @@
+#game {
+	display: flex;
+	gap: 2rem;
+	padding: 1.5rem;
+	max-width: 1400px;
+	margin: 0 auto;
+	align-items: flex-start;
+}
+
+.sidebar-izquierda {
+	flex: 0 0 260px;
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+
+.zona-juego {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 1.5rem;
+	background-color: #1e293b;
+	border-radius: 0.75rem;
+	border: 1px solid #334155;
+}
+
+.sidebar-derecha {
+	flex: 0 0 520px;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+#game-form {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+}
+
+#game-form input {
+	padding: 0.625rem 0.875rem;
+	font-size: 1rem;
+	font-family: inherit;
+	background-color: #0f172a;
+	border: 1px solid #475569;
+	border-radius: 0.375rem;
+	color: #f1f5f9;
+}
+
+#game-form input:focus {
+	outline: none;
+	border-color: #38bdf8;
+	box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+#play-btn {
+	padding: 0.625rem 1rem;
+	font-size: 1rem;
+	font-weight: 500;
+	font-family: inherit;
+	background-color: #3b82f6;
+	color: #ffffff;
+	border: none;
+	border-radius: 0.375rem;
+	cursor: pointer;
+}
+
+#play-btn:hover {
+	background-color: #2563eb;
+}
+
+#logout-btn {
+	padding: 0.5rem 1rem;
+	font-size: 0.95rem;
+	font-weight: 500;
+	font-family: inherit;
+	background-color: #475569;
+	color: #ffffff;
+	border: none;
+	border-radius: 0.375rem;
+	cursor: pointer;
+}
+
+#logout-btn:hover {
+	background-color: #334155;
+}
+
+#timer {
+	font-size: 1.2rem;
+	font-weight: bold;
+	color: #38bdf8;
+	margin-bottom: 0.5rem;
+}
+
+#game-board {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+	gap: 1rem;
+	width: 100%;
+	max-width: 600px;
+}
+
+.card {
+	width: 120px;
+	height: 120px;
+	background-size: cover;
+	background-position: center;
+	border: 2px solid #475569;
+	cursor: pointer;
+	background-color: #334155;
+	background-image: none;
+}
+
+.card.flipped {
+	border-color: #38bdf8;
+}
+
+.card.matched {
+	background-color: #22c55e;
+	border-color: #16a34a;
+}
+
+.highlight {
+	background-color: #fde047 !important;
+}
+
+dialog {
+	border: none;
+	border-radius: 0.5rem;
+	padding: 1rem;
+	max-width: 300px;
+	background-color: #1e293b;
+	color: #f1f5f9;
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+dialog::backdrop {
+	background-color: rgba(0, 0, 0, 0.6);
+}
+
+#modal-message {
+	margin-bottom: 1rem;
+	font-size: 1rem;
+}
+
+#modal-close {
+	padding: 0.5rem 1rem;
+	font-size: 0.95rem;
+	font-weight: 500;
+	font-family: inherit;
+	background-color: #3b82f6;
+	color: #ffffff;
+	border: none;
+	border-radius: 0.375rem;
+	cursor: pointer;
+}
+
+#modal-close:hover {
+	background-color: #2563eb;
+}
+
+#ranking-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.8rem;
+	table-layout: fixed;
+}
+
+#ranking-table th,
+#ranking-table td {
+	border: 1px solid #475569;
+	padding: 0.8rem 0.5rem;
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#ranking-table th {
+	font-size: 0.8rem;
+	font-weight: 600;
+}
+
+#ranking-table th:nth-child(1),
+#ranking-table td:nth-child(1) {
+	width: 8%;
+}
+
+#ranking-table th:nth-child(2),
+#ranking-table td:nth-child(2) {
+	width: 26%;
+}
+
+#ranking-table th:nth-child(3),
+#ranking-table td:nth-child(3) {
+	width: 36%;
+}
+
+#ranking-table th:nth-child(4),
+#ranking-table td:nth-child(4) {
+	width: 14%;
+}
+
+#ranking-table th:nth-child(5),
+#ranking-table td:nth-child(5) {
+	width: 16%;
+}
+
+#ranking-table th {
+	background-color: #334155;
+	color: #cbd5e1;
+}
+
+#ranking-table tr.highlight {
+	background-color: #fde047;
+	color: #000;
+}
+
+.ranking-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+h3 {
+	font-size: 1.125rem;
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+	color: #f1f5f9;
+}

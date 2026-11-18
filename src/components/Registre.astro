@@ -1,0 +1,80 @@
+---
+import '../styles/registre.css';
+---
+
+<form id="user-form">
+  <h1>Registrate</h1>
+	<input type="email" id="email" required placeholder="Email" />
+	<input type="text" id="username" required placeholder="Username" />
+	<button type="submit">Enviar</button>
+</form>
+
+
+<script>
+
+  const DB_URL = import.meta.env.PUBLIC_DB_URL;
+  const form = document.getElementById("user-form");
+
+
+  if (form) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const emailEl = document.getElementById("email");
+      const usernameEl = document.getElementById("username");
+
+      if (!emailEl || !usernameEl) return;
+
+      const emailInput = emailEl.value;
+      const usernameInput = usernameEl.value;
+
+      try {
+        const response = await fetch(`${DB_URL}.json`);
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+        const data = await response.json();
+
+        let existingKey = null;
+        if (data) {
+          for (const [key, value] of Object.entries(data)) {
+            if (value.email === emailInput) {
+              existingKey = key;
+              break;
+            }
+          }
+        }
+
+        const usuarioDatos = { email: emailInput, username: usernameInput };
+        let res;
+        let idGuardado;
+
+        if (existingKey) {
+          res = await fetch(`${DB_URL}/${existingKey}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(usuarioDatos),
+          });
+          idGuardado = existingKey;
+        } else {
+          res = await fetch(`${DB_URL}.json`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(usuarioDatos),
+          });
+          if (!res.ok) throw new Error(`Error guardando usuario (${res.status})`);
+          const result = await res.json();
+          idGuardado = result.name;
+        }
+
+        if (!res.ok) throw new Error(`Error guardando usuario (${res.status})`);
+
+        sessionStorage.setItem("user", idGuardado);
+        location.reload();
+
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    });
+  }
+
+
+</script>
