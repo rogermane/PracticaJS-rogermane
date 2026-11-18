@@ -1,5 +1,11 @@
+---
+import '../styles/game.css';
+---
+
 <section id="game" hidden>
-	<div class="game-left">
+	<div class="sidebar-izquierda">
+		<button id="logout-btn">Cerrar sesión</button>
+		<div id="timer">0m 0s</div>
 		<form id="game-form">
 			<input
 				type="number"
@@ -13,30 +19,28 @@
 		</form>
 	</div>
 
-	<div class="game-right">
-		<div id="timer">0m 0s</div>
-		<button id="logout-btn">Cerrar sesión</button>
+	<div class="zona-juego">
 		<div id="game-board"></div>
-
-		<h3>Ranking</h3>
-		<table id="ranking-table">
-			<thead>
-				<tr>
-					<th>Posició</th>
-					<th>Username</th>
-					<th>Mail</th>
-					<th>Temps</th>
-					<th>Número de cartes</th>
-				</tr>
-			</thead>
-			<tbody id="ranking-body"></tbody>
-		</table>
 	</div>
 
-	<dialog id="modal">
-		<p id="modal-message"></p>
-		<button id="modal-close">D'acord</button>
-	</dialog>
+	<div class="sidebar-derecha">
+		<div class="ranking-panel">
+			<h3>Ranking</h3>
+			<table id="ranking-table">
+				<thead>
+					<tr>
+						<th>Nº</th>
+						<th>Username</th>
+						<th>Mail</th>
+						<th>Temps</th>
+						<th>Nº Cartes</th>
+					</tr>
+				</thead>
+				<tbody id="ranking-body"></tbody>
+			</table>
+		</div>
+	</div>
+
 </section>
 
 <script>
@@ -48,9 +52,6 @@
 		const timerEl = document.getElementById('timer');
 		const gameBoard = document.getElementById('game-board');
 		const rankingBody = document.getElementById('ranking-body');
-		const modal = document.getElementById('modal');
-		const modalMessage = document.getElementById('modal-message');
-		const modalClose = document.getElementById('modal-close');
 
 		let timerInterval = null;
 		let seconds = 0;
@@ -73,7 +74,6 @@
 		async function loadRanking() {
 			if (!DB_URL) return;
 
-			// Leer usuarios para obtener username y email por id
 			const usersRes = await fetch(`${DB_URL}.json`);
 			const usersData = await usersRes.json();
 			const usersMap = {};
@@ -83,7 +83,6 @@
 				}
 			}
 
-			// Leer ranking de la tabla separada en Firebase
 			const baseUrl = DB_URL.replace(/\/users$/, '');
 			const rankingRes = await fetch(`${baseUrl}/ranking.json`);
 			const rankingData = await rankingRes.json();
@@ -94,13 +93,11 @@
 				}
 			}
 
-			// Ordenar: cartes descendente, temps ascendente
 			rankingList.sort((a, b) => {
 				if (b.numCartes !== a.numCartes) return b.numCartes - a.numCartes;
 				return a.temps - b.temps;
 			});
 
-			// Renderizar
 			rankingBody.innerHTML = '';
 			const total = rankingList.length;
 
@@ -119,37 +116,31 @@
 					rankingBody.appendChild(tr);
 				});
 			} else {
-				// 4 primeros
-				for (let i = 0; i < 4; i++) {
-					const record = rankingList[i];
-					const user = usersMap[record.userId] || {};
-					const tr = document.createElement('tr');
-					if (record.key === lastRankingKey) tr.classList.add('highlight');
-					tr.innerHTML = `
-						<td>${i + 1}</td>
-						<td>${user.username || 'Desconocido'}</td>
-						<td>${user.email || 'Desconocido'}</td>
-						<td>${formatTime(record.temps)}</td>
-						<td>${record.numCartes || 0}</td>
-					`;
-					rankingBody.appendChild(tr);
-				}
+				const newIndex = lastRankingKey ? rankingList.findIndex(r => r.key === lastRankingKey) : -1;
 
-				// Puntos suspensivos
-				const ellipsis1 = document.createElement('tr');
-				ellipsis1.innerHTML = '<td colspan="5">...</td>';
-				rankingBody.appendChild(ellipsis1);
-
-				// Si el registro nuevo está en la posición 5, mostrarlo resaltado
-				if (lastRankingKey) {
-					const newIndex = rankingList.findIndex(r => r.key === lastRankingKey);
-					if (newIndex === 4) {
-						const record = rankingList[4];
+				if (newIndex >= 0 && newIndex < 5) {
+					// El registro nuevo está entre los 5 primeros: mostrar los 5 primeros normalmente
+					rankingList.slice(0, 5).forEach((record, index) => {
 						const user = usersMap[record.userId] || {};
 						const tr = document.createElement('tr');
-						tr.classList.add('highlight');
+						if (record.key === lastRankingKey) tr.classList.add('highlight');
 						tr.innerHTML = `
-							<td>5</td>
+							<td>${index + 1}</td>
+							<td>${user.username || 'Desconocido'}</td>
+							<td>${user.email || 'Desconocido'}</td>
+							<td>${formatTime(record.temps)}</td>
+							<td>${record.numCartes || 0}</td>
+						`;
+						rankingBody.appendChild(tr);
+					});
+				} else {
+					// El registro nuevo NO está entre los 5 primeros
+					for (let i = 0; i < 4; i++) {
+						const record = rankingList[i];
+						const user = usersMap[record.userId] || {};
+						const tr = document.createElement('tr');
+						tr.innerHTML = `
+							<td>${i + 1}</td>
 							<td>${user.username || 'Desconocido'}</td>
 							<td>${user.email || 'Desconocido'}</td>
 							<td>${formatTime(record.temps)}</td>
@@ -157,12 +148,30 @@
 						`;
 						rankingBody.appendChild(tr);
 					}
-				}
 
-				// Puntos suspensivos finales
-				const ellipsis2 = document.createElement('tr');
-				ellipsis2.innerHTML = '<td colspan="5">...</td>';
-				rankingBody.appendChild(ellipsis2);
+					const ellipsis1 = document.createElement('tr');
+					ellipsis1.innerHTML = '<td colspan="5">...</td>';
+					rankingBody.appendChild(ellipsis1);
+
+					if (lastRankingKey && newIndex >= 4) {
+						const record = rankingList[newIndex];
+						const user = usersMap[record.userId] || {};
+						const tr = document.createElement('tr');
+						tr.classList.add('highlight');
+						tr.innerHTML = `
+							<td>${newIndex + 1}</td>
+							<td>${user.username || 'Desconocido'}</td>
+							<td>${user.email || 'Desconocido'}</td>
+							<td>${formatTime(record.temps)}</td>
+							<td>${record.numCartes || 0}</td>
+						`;
+						rankingBody.appendChild(tr);
+					}
+
+					const ellipsis2 = document.createElement('tr');
+					ellipsis2.innerHTML = '<td colspan="5">...</td>';
+					rankingBody.appendChild(ellipsis2);
+				}
 			}
 		}
 
@@ -302,9 +311,6 @@
 				value <= 0 ||
 				value % 2 !== 0
 			) {
-				modalMessage.textContent =
-					'Has de introduir un nombre enter, positiu i parell.';
-				modal.showModal();
 				return;
 			}
 
@@ -312,10 +318,6 @@
 			stopTimer();
 			createBoard(value);
 			startTimer();
-		});
-
-		modalClose.addEventListener('click', () => {
-			modal.close();
 		});
 
 		const logoutBtn = document.getElementById('logout-btn');
@@ -326,98 +328,8 @@
 			});
 		}
 
-		// Cargar ranking al iniciar si hay sesión
 		loadRanking();
 	}
 
 	init();
 </script>
-
-<style is:global>
-	#game {
-		display: flex;
-		gap: 2rem;
-		padding: 1rem;
-		max-width: 1000px;
-		margin: 0 auto;
-	}
-
-	.game-left {
-		flex: 0 0 220px;
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.game-right {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	#game-form {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	#game-board {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-		gap: 1rem;
-	}
-
-	#timer {
-		font-size: 1.2rem;
-		font-weight: bold;
-	}
-
-	.card {
-		width: 100px;
-		height: 100px;
-		background-size: cover;
-		background-position: center;
-		border: 2px solid #333;
-		cursor: pointer;
-		background-color: #ddd;
-		background-image: none;
-	}
-
-	.card.flipped {
-		border-color: #000;
-	}
-
-	.card.matched {
-		background-color: #4caf50;
-		border-color: #2e7d32;
-	}
-
-	.highlight {
-		background-color: #ffeb3b !important;
-	}
-
-	dialog {
-		border: none;
-		border-radius: 8px;
-		padding: 1rem;
-		max-width: 300px;
-	}
-
-	#ranking-table {
-		width: 100%;
-		border-collapse: collapse;
-		font-size: 0.9rem;
-	}
-
-	#ranking-table th,
-	#ranking-table td {
-		border: 1px solid #333;
-		padding: 0.4rem;
-		text-align: center;
-	}
-
-	#ranking-table th {
-		background-color: #eee;
-	}
-</style>

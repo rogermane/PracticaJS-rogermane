@@ -1,43 +1,20 @@
+---
+import '../styles/registre.css';
+---
+
 <form id="user-form">
-  <input type="email" id="email" required placeholder="Email" />
-  <input type="text" id="username" required placeholder="Username" />
-  <button type="submit">Enviar</button>
+  <h1>Registrate</h1>
+	<input type="email" id="email" required placeholder="Email" />
+	<input type="text" id="username" required placeholder="Username" />
+	<button type="submit">Enviar</button>
 </form>
 
-<p id="welcome" hidden></p>
-<p id="msg"></p>
-
-<button id="clearBtn">Clear</button>
 
 <script>
 
   const DB_URL = import.meta.env.PUBLIC_DB_URL;
   const form = document.getElementById("user-form");
-  const welcome = document.getElementById("welcome");
-  const msg = document.getElementById("msg");
-  const clearBtn = document.getElementById("clearBtn");
 
-  function mostrar(texto, tipo) {
-    if (!msg) return;
-    msg.textContent = texto;
-    msg.hidden = false;
-    msg.setAttribute("data-tipo", tipo);
-  }
-
-  function actualizarUI(userId) {
-    if (userId && form && welcome) {
-      form.hidden = true;
-      welcome.hidden = false;
-      welcome.textContent = "Usuario conectado correctamente";
-      if (msg) msg.hidden = true;
-    } else if (form && welcome) {
-      form.hidden = false;
-      welcome.hidden = true;
-    }
-  }
-
-  // Inicial
-  actualizarUI(sessionStorage.getItem("user"));
 
   if (form) {
     form.addEventListener("submit", async (event) => {
@@ -95,16 +72,9 @@
 
       } catch (error) {
         console.error("Error:", error);
-        mostrar(`Error: ${error.message}`, "error");
       }
     });
   }
 
-  if (clearBtn) {
-    clearBtn.addEventListener("click", () => {
-      sessionStorage.removeItem("user");
-      location.reload();
-    });
-  }
 
 </script>
